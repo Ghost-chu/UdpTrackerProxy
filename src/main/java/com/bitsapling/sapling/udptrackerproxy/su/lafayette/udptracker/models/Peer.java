@@ -2,8 +2,6 @@ package com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.models;
 
 
 import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class Peer {
 	public boolean ipv6;
@@ -18,7 +16,7 @@ public class Peer {
 	public int key;
 	public int numWant;
 	public long lastUpdate;
-	public Map<String, Object> extensions = new LinkedHashMap<>();
+	public String queryParam = "";
 
 
 	@Override
@@ -36,7 +34,7 @@ public class Peer {
 				", key=" + key +
 				", numWant=" + numWant +
 				", lastUpdate=" + lastUpdate +
-				", extensions=" + extensions +
+				", queryParam=" + queryParam +
 				'}';
 	}
 }

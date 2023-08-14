@@ -15,12 +15,10 @@ public class ConnectionResponse {
 
 	public static void send(ChannelHandlerContext ctx, DatagramPacket event, Integer transactionId, Long connectionId) throws Exception {
 		logger.fine("ConnectionResponse::send to " + event.sender());
-
 		ByteBuf responseBuffer = Unpooled.buffer(4 + 4 + 8);
 		responseBuffer.writeInt(Action.CONNECT.getId());
 		responseBuffer.writeInt(transactionId);
 		responseBuffer.writeLong(connectionId);
-
 		logger.fine("ConnectionResponse DUMP: " + Utils.getHexString(responseBuffer.array()));
 		DatagramPacket dp = new DatagramPacket(responseBuffer, event.sender());
 		ctx.channel().writeAndFlush(dp);

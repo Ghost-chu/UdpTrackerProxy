@@ -16,11 +16,3 @@ per_tracker_concurrency: 150
 # when Client didn't give one.
 # It won't affect the tracker if this value is higher than tracker limit.
 max_num_want: 500
-
-# How many UDP announce requests can stay in the queue,
-# if the queue is full, the proxy will return error to client.
-work-queue-size: 3000
-
-# The work queue element eject method,
-# Available options: "HEAD_FIRST", "TAIL_FIRST"
-work-queue-element-eject-method: "HEAD_FIRST"
