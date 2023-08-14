@@ -10,6 +10,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.codec.EncoderException;
 import org.apache.commons.codec.net.URLCodec;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,7 @@ public class TrackerRequestWorker {
     public TrackerRequestWorker() {
     }
 
-    public void announce(Peer peer, boolean ipv6, String queryParam, Consumer<HttpResponse<String>> callback) {
+    public void announce(Peer peer, boolean ipv6, String queryParam, Consumer<Pair<String, HttpResponse<String>>> callback) {
         if (queryParam.startsWith("/")) {
             queryParam = queryParam.substring(1);
         }
@@ -47,7 +48,7 @@ public class TrackerRequestWorker {
                     .header("X-Real-IP", peerIp)
                     .header("X-Forwarded-For", peerIp)
                     .asStringAsync()
-                    .thenAccept(callback)
+                    .thenAccept(c->callback.accept(Pair.of(announceUrl,c)))
                     .exceptionally(err -> {
                         logger.error("Failed to announce to tracker: {}", tracker, err);
                         return null;
@@ -58,7 +59,7 @@ public class TrackerRequestWorker {
         }
     }
 
-    public void scrape(Peer peer, boolean ipv6, String queryParam, Consumer<HttpResponse<String>> callback) {
+    public void scrape(Peer peer, boolean ipv6, String queryParam, Consumer<Pair<String, HttpResponse<String>>> callback) {
         if (queryParam.startsWith("/")) {
             queryParam = queryParam.substring(1);
         }
@@ -79,7 +80,7 @@ public class TrackerRequestWorker {
                     .header("X-Real-IP", peerIp)
                     .header("X-Forwarded-For", peerIp)
                     .asStringAsync()
-                    .thenAccept(callback)
+                    .thenAccept(c->callback.accept(Pair.of(announceUrl,c)))
                     .exceptionally(err -> {
                         logger.error("Failed to scrape to tracker: {}", tracker, err);
                         return null;

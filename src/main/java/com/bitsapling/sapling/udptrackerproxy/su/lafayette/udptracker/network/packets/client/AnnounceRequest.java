@@ -11,6 +11,7 @@ import com.dampcake.bencode.Type;
 import com.google.common.net.InetAddresses;
 import io.netty.buffer.ByteBuf;
 import kong.unirest.HttpResponse;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,33 +90,34 @@ public class AnnounceRequest extends ClientRequest {
         }
         Main.getTrackerRequestWorker()
                 .announce(peer, ipv6, peer.queryParam, (resp) -> {
-                    logger.info("Tracker server response: {}", resp);
                     try {
-                        Map<String, Object> serverResponse = BencodeUtil.bittorrent().decode(resp.getBody().getBytes(StandardCharsets.ISO_8859_1), Type.DICTIONARY);
+                        Map<String, Object> serverResponse = BencodeUtil
+                                .bittorrent()
+                                .decode(resp.getRight().getBody().getBytes(StandardCharsets.ISO_8859_1), Type.DICTIONARY);
                         boolean success = serverResponse.containsKey("peers");
                         if (success) {
-                            handleSuccessAnnounceResponse(peer, serverResponse, ipv6);
+                            handleSuccessAnnounceResponse(peer, serverResponse, ipv6, resp.getLeft());
                         } else {
-                            handleFailureAnnounceResponse(peer, serverResponse);
+                            handleFailureAnnounceResponse(peer, serverResponse, resp.getLeft());
                         }
-                    } catch (Exception exception) {
-                        handleTrackerNotExceptedResponse(peer, resp, exception);
+                    } catch (Exception e) {
+                        handleTrackerNotExceptedResponse(peer, resp.getRight(), e, resp.getLeft());
                     }
                 });
-        logger.info("{}", peer);
-       // ErrorResponse.send(context, getDatagramPacket(), getTransactionId(), "Fatal error!");
-        //AnnounceResponse.send(context,getDatagramPacket(),transactionId,500,15,20, Collections.emptyList());
     }
 
-    private void handleTrackerNotExceptedResponse(Peer peer, HttpResponse<String> resp, Exception exception) {
-        logger.warn("Tracker server error: {}", exception.getMessage(), exception);
+    @SneakyThrows
+    private void handleTrackerNotExceptedResponse(Peer peer, HttpResponse<String> resp, Exception exception, String tracker) {
+        logger.warn("[FAIL] announce:tracker:fail -> status code: {}, announce url {}, response: \n{}", resp.getStatus(), tracker, resp.getBody(), exception);
+        ErrorResponse.send(context, getDatagramPacket(), getTransactionId(), resp.getStatusText() + ": " + resp.getStatus() + " -> " + resp.getBody());
     }
 
-    private void handleFailureAnnounceResponse(Peer peer, Map<String, Object> serverResponse) {
-        logger.warn("Tracker server response: {}", serverResponse);
+    private void handleFailureAnnounceResponse(Peer peer, Map<String, Object> serverResponse, String tracker) throws Exception {
+        logger.info("[OK] announce:fail -> interval={}, clientIp={}, reason={}", serverResponse.get("interval"), peer.ip, serverResponse.get("failure reason"));
+        ErrorResponse.send(context, getDatagramPacket(), getTransactionId(), String.valueOf(serverResponse.get("failure reason")));
     }
 
-    private void handleSuccessAnnounceResponse(Peer peer, Map<String, Object> serverResponse, boolean ipv6) throws Exception {
+    private void handleSuccessAnnounceResponse(Peer peer, Map<String, Object> serverResponse, boolean ipv6, String tracker) throws Exception {
         @SuppressWarnings("unchecked") List<Map<String, String>> peers = (List<Map<String, String>>) serverResponse.get("peers");
         int interval = 600;
         if (serverResponse.containsKey("interval")) {
@@ -124,13 +126,11 @@ public class AnnounceRequest extends ClientRequest {
         int complete = -1;
         int incomplete = -1;
         if (serverResponse.containsKey("complete")) {
-            complete =  Integer.parseInt(String.valueOf(serverResponse.get("complete")));
+            complete = Integer.parseInt(String.valueOf(serverResponse.get("complete")));
         }
         if (serverResponse.containsKey("incomplete")) {
-            incomplete =  Integer.parseInt(String.valueOf(serverResponse.get("incomplete")));
+            incomplete = Integer.parseInt(String.valueOf(serverResponse.get("incomplete")));
         }
-
-
         List<PeerInfo> peerInfos = new ArrayList<>();
         for (Map<String, String> peerData : peers) {
             String ip = peerData.get("ip");
@@ -139,6 +139,8 @@ public class AnnounceRequest extends ClientRequest {
             PeerInfo peerInfo = new PeerInfo(peerData.get("peer id"), ip, Integer.parseInt(peerData.get("port")));
             peerInfos.add(peerInfo);
         }
+        logger.info("[OK] announce:success -> interval={}, complete={}, incomplete={}, peers={}, clientIp={}, peer={}",
+                interval, complete, incomplete, peerInfos.size(), getDatagramPacket().sender().getAddress(), peer);
         AnnounceResponse.send(context, getDatagramPacket(), getTransactionId(),
                 interval, incomplete, complete, peerInfos, ipv6);
     }

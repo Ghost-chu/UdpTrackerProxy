@@ -1,7 +1,9 @@
 package com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.models;
 
 
-import java.util.Arrays;
+import com.bitsapling.sapling.udptrackerproxy.util.InfoHashUtil;
+
+import java.nio.charset.StandardCharsets;
 
 public class Peer {
 	public boolean ipv6;
@@ -23,8 +25,8 @@ public class Peer {
 	public String toString() {
 		return "Peer{" +
 				"ipv6=" + ipv6 +
-				", infoHash=" + Arrays.toString(infoHash) +
-				", peerId=" + Arrays.toString(peerId) +
+				", infoHash=" + InfoHashUtil.parseInfoHash(new String(infoHash, StandardCharsets.ISO_8859_1))+
+				", peerId=" + new String(peerId,StandardCharsets.ISO_8859_1) +
 				", downloaded=" + downloaded +
 				", left=" + left +
 				", uploaded=" + uploaded +
