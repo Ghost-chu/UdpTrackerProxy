@@ -43,8 +43,8 @@ public class TrackerRequestWorker {
             String announceUrl = buildAnnounceUrl(tracker, queryParam, peer, ipv6);
             logger.info("Announcing to tracker: {}", announceUrl);
             Unirest.get(announceUrl)
-                    .headerReplace("User-Agent", "qBittorrent/4.5.4")
-                    //.headerReplace("User-Agent", "UdpTrackerProxy(" + peerId.substring(0, 8) + ")/0.1")
+                    //.headerReplace("User-Agent", "qBittorrent/4.5.4")
+                    .headerReplace("User-Agent", "UdpTrackerProxy(" + peerId.substring(0, 8) + ")/0.1")
                     .header("X-Real-IP", peerIp)
                     .header("X-Forwarded-For", peerIp)
                     .asStringAsync()
@@ -68,8 +68,8 @@ public class TrackerRequestWorker {
         String scrapeUrl = announceUrl.replace("announce", "scrape");
         logger.info("Scrape to tracker: {}", scrapeUrl);
         Unirest.get(scrapeUrl)
-                .headerReplace("User-Agent", "qBittorrent/4.5.4")
-                //.headerReplace("User-Agent", "UdpTrackerProxy(" + peerId.substring(0, 8) + ")/0.1")
+                //.headerReplace("User-Agent", "qBittorrent/4.5.4")
+                .headerReplace("User-Agent", "UdpTrackerProxy(unknown-scrape)/0.1")
                 .header("X-Real-IP", peerIp)
                 .header("X-Forwarded-For", peerIp)
                 .asStringAsync()

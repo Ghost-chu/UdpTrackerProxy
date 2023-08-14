@@ -78,8 +78,8 @@ public class AnnounceRequest extends ClientRequest {
                 }
             }
         }
-        int maxNumWant = Main.getConfig().node("max_wants").getInt();
-        if (peer.numWant < 0 || peer.numWant > maxNumWant) {
+        int maxNumWant = Main.getConfig().node("max_num_want").getInt(300);
+        if (peer.numWant <= 0 || peer.numWant > maxNumWant) {
             peer.numWant = maxNumWant;
         }
 
@@ -91,9 +91,10 @@ public class AnnounceRequest extends ClientRequest {
         Main.getTrackerRequestWorker()
                 .announce(peer, ipv6, peer.queryParam, (resp) -> {
                     try {
+                        logger.info(resp.getRight().getBody());
                         Map<String, Object> serverResponse = BencodeUtil
                                 .bittorrent()
-                                .decode(resp.getRight().getBody().getBytes(StandardCharsets.ISO_8859_1), Type.DICTIONARY);
+                                .decode(resp.getRight().getBody().getBytes(StandardCharsets.US_ASCII), Type.DICTIONARY);
                         boolean success = serverResponse.containsKey("peers");
                         if (success) {
                             handleSuccessAnnounceResponse(peer, serverResponse, ipv6, resp.getLeft());
@@ -136,7 +137,7 @@ public class AnnounceRequest extends ClientRequest {
             String ip = peerData.get("ip");
             boolean peerIpv6 = InetAddresses.forString(ip) instanceof Inet6Address;
             if (ipv6 != peerIpv6) continue;
-            PeerInfo peerInfo = new PeerInfo(peerData.get("peer id"), ip, Integer.parseInt(peerData.get("port")));
+            PeerInfo peerInfo = new PeerInfo(peerData.get("peer id"), ip, Integer.parseInt(String.valueOf(peerData.get("port"))));
             peerInfos.add(peerInfo);
         }
         logger.info("[OK] announce:success -> interval={}, complete={}, incomplete={}, peers={}, clientIp={}, peer={}",
