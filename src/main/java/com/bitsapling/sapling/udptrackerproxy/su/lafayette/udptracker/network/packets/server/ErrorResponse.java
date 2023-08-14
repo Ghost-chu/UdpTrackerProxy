@@ -19,7 +19,7 @@ public class ErrorResponse {
         responseBuffer.writeInt(Action.ERROR.getId());
         responseBuffer.writeInt(transactionId);
         //responseBuffer.writeZero(10);
-        //responseBuffer.writeBytes(message.getBytes(StandardCharsets.UTF_8));
+        responseBuffer.writeBytes(message.getBytes(StandardCharsets.US_ASCII));
         logger.info("ErrorResponse DUMP: {}", responseBuffer.array());
         DatagramPacket dp = new DatagramPacket(responseBuffer, event.sender());
         ctx.channel().writeAndFlush(dp);
