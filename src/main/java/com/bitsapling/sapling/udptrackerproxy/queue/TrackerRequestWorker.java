@@ -59,37 +59,41 @@ public class TrackerRequestWorker {
         }
     }
 
-    public void scrape(Peer peer, boolean ipv6, String queryParam, Consumer<Pair<String, HttpResponse<String>>> callback) {
+    public void scrape(String queryParam, List<byte[]> infoHashes, String peerIp, Consumer<Pair<String, HttpResponse<String>>> callback) {
         if (queryParam.startsWith("/")) {
             queryParam = queryParam.substring(1);
         }
-        String peerId = new String(peer.peerId, StandardCharsets.ISO_8859_1);
-        String peerIp = InetAddresses.fromInteger(peer.ip).getHostAddress();
-        if (peerId.length() < 8) {
-            logger.warn("Peer id is too short: {}, scrape won't forward to tracker!", peerId);
-            return;
-        }
         String tracker = randomPickTracker();
-        try {
-            String announceUrl = buildAnnounceUrl(tracker, queryParam, peer, ipv6);
-            String scrapeUrl = announceUrl.replace("announce", "scrape");
-            logger.info("Announcing to tracker: {}", scrapeUrl);
-            Unirest.get(scrapeUrl)
-                    //.headerReplace("User-Agent", "qBittorrent/4.5.4")
-                    .headerReplace("User-Agent", "UdpTrackerProxy(" + peerId.substring(0, 8) + ")/0.1")
-                    .header("X-Real-IP", peerIp)
-                    .header("X-Forwarded-For", peerIp)
-                    .asStringAsync()
-                    .thenAccept(c->callback.accept(Pair.of(announceUrl,c)))
-                    .exceptionally(err -> {
-                        logger.error("Failed to scrape to tracker: {}", tracker, err);
-                        return null;
-                    });
-        } catch (URISyntaxException e) {
-            logger.error("Failed to build scrape url for tracker: {}", tracker);
-        } catch (EncoderException e) {
-            throw new RuntimeException(e);
+        String announceUrl = buildScrapeUrl(tracker, queryParam,infoHashes);
+        String scrapeUrl = announceUrl.replace("announce", "scrape");
+        logger.info("Scrape to tracker: {}", scrapeUrl);
+        Unirest.get(scrapeUrl)
+                .headerReplace("User-Agent", "qBittorrent/4.5.4")
+                //.headerReplace("User-Agent", "UdpTrackerProxy(" + peerId.substring(0, 8) + ")/0.1")
+                .header("X-Real-IP", peerIp)
+                .header("X-Forwarded-For", peerIp)
+                .asStringAsync()
+                .thenAccept(c->callback.accept(Pair.of(scrapeUrl,c)))
+                .exceptionally(err -> {
+                    logger.error("Failed to scrape to tracker: {}", tracker, err);
+                    return null;
+                });
+    }
+
+    private String buildScrapeUrl(String tracker, String params, List<byte[]> infoHashes) {
+        params = StringUtils.substringAfter(params, "?");
+        String[] queries = params.split("&");
+        TrackerQueryBuilder builder = new TrackerQueryBuilder();
+        for (byte[] infoHash : infoHashes) {
+            builder.add("info_hash", infoHash);
         }
+        for (String query : queries) {
+            String[] kv = query.split("=");
+            if (kv.length == 2) {
+                builder.add(kv[0], kv[1]);
+            }
+        }
+        return tracker + "?" + builder.toQuery();
     }
 
     private String buildAnnounceUrl(String tracker, String params, Peer peer, boolean ipv6) throws URISyntaxException, EncoderException {

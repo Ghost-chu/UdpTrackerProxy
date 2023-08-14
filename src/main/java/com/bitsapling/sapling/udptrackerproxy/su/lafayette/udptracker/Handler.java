@@ -3,6 +3,7 @@ package com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker;
 import com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.network.packets.ClientRequest;
 import com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.network.packets.client.AnnounceRequest;
 import com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.network.packets.client.ConnectionRequest;
+import com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.network.packets.client.ScrapeRequest;
 import com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.network.packets.server.ErrorResponse;
 import com.bitsapling.sapling.udptrackerproxy.su.lafayette.udptracker.structures.Action;
 import io.netty.buffer.ByteBuf;
@@ -19,7 +20,7 @@ public class Handler extends SimpleChannelInboundHandler<DatagramPacket> {
 
 	@Override
 	protected void channelRead0(ChannelHandlerContext channelHandlerContext, DatagramPacket datagramPacket) throws Exception {
-		logger.info("Received packet from {}.", datagramPacket.sender());
+		logger.debug("Received packet from {}.", datagramPacket.sender());
 		ByteBuf channelBuffer = datagramPacket.content();
 		if (channelBuffer.readableBytes() < 16) {
 			logger.warn("Incorrect packet received from {}, byte less than 16 bytes." , datagramPacket.sender());
@@ -27,14 +28,14 @@ public class Handler extends SimpleChannelInboundHandler<DatagramPacket> {
 		long connectionId = channelBuffer.readLong(); // TODO: Можно проверять connectionId.
 		int actionId = channelBuffer.readInt();
 		int transactionId = channelBuffer.readInt();
-		logger.info("Received packet from {}, connectionId: {}, actionId: {}, transactionId: {}.", datagramPacket.sender(), connectionId, actionId, transactionId);
+		logger.debug("Received packet from {}, connectionId: {}, actionId: {}, transactionId: {}.", datagramPacket.sender(), connectionId, actionId, transactionId);
 		Action action = Action.byId(actionId);
 		ClientRequest request;
 		if (action != null) {
 			switch (action) {
 				case CONNECT -> request = new ConnectionRequest();
 				case ANNOUNCE -> request = new AnnounceRequest();
-				//case SCRAPE -> request = new ScrapeRequest();
+				case SCRAPE -> request = new ScrapeRequest();
 				default -> {
 					logger.warn("Client {} send a packet with invalid action: {}", datagramPacket.sender(), action);
 					ErrorResponse.send(channelHandlerContext,datagramPacket, transactionId, "Incorrect action");
