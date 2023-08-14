@@ -1,0 +1,18 @@
+# The tracker announce endpoints, the proxy will random select one when a client trying to announce/scrape.
+announce_endpoint:
+  - "http://yourtracker.com/announce.php"
+  - "http://yourtracker2.com/announce.php"
+  - "http://yourtracker3.com/announce.php"
+
+# The maximum the client 'num_want' value, proxy will limit the value to this number, or use this number
+# when Client didn't give one.
+# It won't affect the tracker if this value is higher than tracker limit.
+max_num_want: 500
+
+# How many UDP announce requests can stay in the queue,
+# if the queue is full, the proxy will return error to client.
+work-queue-size: 3000
+
+# The work queue element eject method,
+# Available options: "HEAD_FIRST", "TAIL_FIRST"
+work-queue-element-eject-method: "HEAD_FIRST"
